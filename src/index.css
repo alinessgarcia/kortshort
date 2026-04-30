@@ -607,6 +607,73 @@ input { font-family: var(--font); }
 .empty-state h3 { font-size: 18px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
 .empty-state p { font-size: 14px; }
 
+/* Progress Bar */
+.progress-bar-wrapper {
+  width: 200px; height: 6px; background: rgba(124,58,237,0.12);
+  border-radius: 99px; overflow: hidden; margin-top: 8px;
+}
+.progress-bar {
+  height: 100%; background: var(--accent-gradient);
+  border-radius: 99px; transition: width 0.4s ease;
+}
+
+.processing-detail {
+  font-size: 13px; color: var(--text-muted); margin-top: 4px;
+}
+
+/* Error Banner */
+.error-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px; border-radius: var(--radius-md);
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: #991b1b; font-size: 14px; font-weight: 500;
+  animation: fadeInUp 0.3s ease both;
+}
+.error-banner button {
+  margin-left: auto; background: none; color: #991b1b;
+  font-size: 16px; padding: 2px 6px; border-radius: 4px;
+}
+.error-banner button:hover { background: rgba(153,27,27,0.1); }
+
+/* Clip Count Badge */
+.clip-count-badge {
+  position: absolute; bottom: 8px; right: 8px;
+  background: rgba(0,0,0,0.7); color: white;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  backdrop-filter: blur(4px);
+}
+
+/* Project Actions */
+.project-actions {
+  padding: 0 12px 12px; display: flex; justify-content: flex-end;
+}
+.delete-btn {
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted);
+  transition: var(--transition);
+}
+.delete-btn:hover { background: #fef2f2; color: #ef4444; }
+
+/* Status Dots */
+.project-meta .status-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-right: 4px;
+}
+.status-dot.done { background: #10b981; }
+.status-dot.processing { background: #f59e0b; animation: pulse 1.5s infinite; }
+.status-dot.error { background: #ef4444; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Disabled state */
+.generate-btn:disabled, .url-input:disabled {
+  opacity: 0.6; cursor: not-allowed;
+}
+
 /* ===== ANIMATIONS ===== */
 @keyframes spin { to { transform: rotate(360deg); } }
 
