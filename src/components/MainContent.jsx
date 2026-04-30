@@ -1,49 +1,51 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, Upload, Play, MonitorPlay, Download, Copy, Zap, Trash2, Clock, CheckCircle } from 'lucide-react';
+import { Link, Upload, Play, MonitorPlay, Download, Copy, Zap, Trash2, Clock, CheckCircle, Brain, Sparkles, Bolt } from 'lucide-react';
 
 const API = 'http://localhost:8000';
 
+const AI_MODES = [
+  { id: 'smart', label: 'Smart AI', icon: Brain, desc: 'Whisper + Qwen + Face Tracking', color: '#7c3aed' },
+  { id: 'fast', label: 'Fast', icon: Bolt, desc: 'No AI, auto-segments', color: '#f59e0b' },
+];
+
 export default function MainContent({ initialUrl }) {
   const [url, setUrl] = useState(initialUrl || '');
+  const [aiMode, setAiMode] = useState('smart');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ step: '', progress: 0 });
   const [results, setResults] = useState([]);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Load history on mount
   useEffect(() => {
     fetchHistory();
+    fetchAiStatus();
   }, []);
 
   const fetchHistory = async () => {
     try {
       const res = await fetch(`${API}/history`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(data);
-      }
+      if (res.ok) setHistory(await res.json());
     } catch {}
   };
 
-  const listenProgress = useCallback((projectId) => {
-    const evtSource = new EventSource(`${API}/progress/${projectId}`);
-    evtSource.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setProgress(data);
-      if (data.status === 'done' || data.status === 'error') {
-        evtSource.close();
-      }
-    };
-    evtSource.onerror = () => evtSource.close();
-  }, []);
+  const fetchAiStatus = async () => {
+    try {
+      const res = await fetch(`${API}/ai/status`);
+      if (res.ok) setAiStatus(await res.json());
+    } catch {}
+  };
 
   const stepLabels = {
     downloading: '📥 Downloading video...',
     uploading: '📤 Uploading file...',
     analyzing: '📊 Analyzing video...',
+    transcribing: '🎤 Whisper AI transcribing...',
+    curating: '🧠 AI selecting viral moments...',
+    detecting: '👤 Detecting faces for reframe...',
     cutting: '✂️ Generating clips...',
     done: '✅ Done!',
     error: '❌ Error occurred'
@@ -60,9 +62,8 @@ export default function MainContent({ initialUrl }) {
       const response = await fetch(`${API}/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url, ai_mode: aiMode })
       });
-
       const data = await response.json();
 
       if (response.ok && data.status === 'success') {
@@ -74,13 +75,14 @@ export default function MainContent({ initialUrl }) {
           title: `Clip ${i + 1} — ${data.title}`,
           duration: `${Math.round(c.duration)}s`,
           start: `${Math.round(c.start)}s`,
+          reason: c.reason || '',
+          hasCaptions: c.has_captions
         })));
-        if (data.project_id) listenProgress(data.project_id);
         fetchHistory();
       } else {
         setError(data.detail || 'Processing failed');
       }
-    } catch (err) {
+    } catch {
       setError('Cannot connect to backend. Run: python backend/main.py');
     } finally {
       setTimeout(() => setIsProcessing(false), 800);
@@ -90,7 +92,6 @@ export default function MainContent({ initialUrl }) {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsProcessing(true);
     setError('');
     setResults([]);
@@ -99,8 +100,7 @@ export default function MainContent({ initialUrl }) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      const response = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+      const response = await fetch(`${API}/upload?ai_mode=${aiMode}`, { method: 'POST', body: formData });
       const data = await response.json();
 
       if (response.ok && data.status === 'success') {
@@ -112,6 +112,8 @@ export default function MainContent({ initialUrl }) {
           title: `Clip ${i + 1} — ${data.title}`,
           duration: `${Math.round(c.duration)}s`,
           start: `${Math.round(c.start)}s`,
+          reason: c.reason || '',
+          hasCaptions: c.has_captions
         })));
         fetchHistory();
       } else {
@@ -150,12 +152,37 @@ export default function MainContent({ initialUrl }) {
         <div className="credits-badge">
           <Zap size={14} /> Unlimited — Local Mode
         </div>
+        {aiStatus && (
+          <div className="ai-status-badge">
+            <Sparkles size={14} />
+            {aiStatus.whisper ? 'Whisper' : ''}{aiStatus.ollama ? ' + Qwen' : ''}{aiStatus.opencv ? ' + CV' : ''}
+            {!aiStatus.ai_available && 'AI unavailable'}
+          </div>
+        )}
       </div>
 
       <div className="content-wrapper">
         <div className="hero-section">
           <h1 className="hero-title">Create viral shorts in a click</h1>
-          <p className="hero-subtitle">Paste a YouTube link or upload a local file. AI generates multiple clips automatically.</p>
+          <p className="hero-subtitle">AI transcribes, finds viral moments, and reframes faces automatically.</p>
+        </div>
+
+        {/* AI Mode Selector */}
+        <div className="ai-mode-selector">
+          {AI_MODES.map(mode => (
+            <button
+              key={mode.id}
+              className={`ai-mode-btn ${aiMode === mode.id ? 'active' : ''}`}
+              onClick={() => setAiMode(mode.id)}
+              style={aiMode === mode.id ? { borderColor: mode.color, color: mode.color } : {}}
+            >
+              <mode.icon size={16} />
+              <div>
+                <div className="ai-mode-label">{mode.label}</div>
+                <div className="ai-mode-desc">{mode.desc}</div>
+              </div>
+            </button>
+          ))}
         </div>
 
         {/* Generator Box */}
@@ -166,6 +193,9 @@ export default function MainContent({ initialUrl }) {
               <div className="processing-text">
                 {stepLabels[progress.step] || 'Processing...'}
               </div>
+              {progress.detail && (
+                <div className="processing-detail">{progress.detail}</div>
+              )}
               {progress.total_clips && (
                 <div className="processing-detail">
                   Clip {progress.current_clip || '...'} of {progress.total_clips}
@@ -181,18 +211,15 @@ export default function MainContent({ initialUrl }) {
             <div className="input-group">
               <Link className="url-icon" size={20} />
               <input
-                type="text"
-                className="url-input"
+                type="text" className="url-input"
                 placeholder="Paste YouTube, TikTok or any video URL..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                value={url} onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 disabled={isProcessing}
               />
             </div>
             <button className="generate-btn" onClick={handleGenerate} disabled={isProcessing}>
-              <span>✨</span> Generate
-              <MonitorPlay size={18} />
+              <span>✨</span> Generate <MonitorPlay size={18} />
             </button>
           </div>
 
@@ -203,7 +230,6 @@ export default function MainContent({ initialUrl }) {
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="error-banner">
             <span>❌</span> {error}
@@ -218,6 +244,7 @@ export default function MainContent({ initialUrl }) {
               <h3>Generated Shorts</h3>
               <span className="results-count">
                 <CheckCircle size={14} /> {results.length} clip{results.length > 1 ? 's' : ''}
+                {aiMode === 'smart' && ' • AI Enhanced'}
               </span>
             </div>
             <div className="results-grid">
@@ -225,12 +252,18 @@ export default function MainContent({ initialUrl }) {
                 <div className="result-card" key={r.id}>
                   <div className="result-video">
                     <video src={r.url} controls preload="metadata" poster={r.thumbnail} />
+                    {r.hasCaptions && <span className="caption-badge">CC</span>}
                   </div>
                   <div className="result-info">
                     <div className="result-title">{r.title}</div>
                     <div className="result-meta">
                       <Clock size={11} /> {r.duration} • starts at {r.start}
                     </div>
+                    {r.reason && (
+                      <div className="result-reason">
+                        <Brain size={11} /> {r.reason}
+                      </div>
+                    )}
                   </div>
                   <div className="result-actions">
                     <button onClick={() => window.open(r.url, '_blank')}>
@@ -268,6 +301,9 @@ export default function MainContent({ initialUrl }) {
                     <span className="clip-count-badge">
                       {project.clips?.length || 0} clip{(project.clips?.length || 0) !== 1 ? 's' : ''}
                     </span>
+                    {project.ai_mode === 'smart' && (
+                      <span className="ai-badge"><Brain size={10} /> AI</span>
+                    )}
                   </div>
                   <div className="project-info">
                     <div className="project-title">{project.title}</div>
