@@ -1,47 +1,47 @@
 import React from 'react';
-import { Video, FolderOpen, Settings, Home, CreditCard } from 'lucide-react';
+import { Home, Video, Settings, CreditCard, Plus, Zap } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate, currentPage }) {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-        </div>
-        Klap
+        <div className="brand-icon">K</div>
+        KortShort
       </div>
+
+      <button className="new-project-btn" onClick={() => onNavigate && onNavigate('generate')}>
+        <Plus size={16} /> New Project
+      </button>
 
       <div className="nav-section">
         <div className="nav-label">Overview</div>
-        <a href="#" className="nav-item active">
-          <Home size={18} />
-          Home
+        <a href="#" className={`nav-item ${currentPage === 'home' ? 'active' : ''}`}
+           onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('home'); }}>
+          <Home size={18} /> Home
         </a>
-        <a href="#" className="nav-item">
-          <Video size={18} />
-          My Videos
+        <a href="#" className={`nav-item ${currentPage === 'videos' ? 'active' : ''}`}
+           onClick={(e) => { e.preventDefault(); onNavigate && onNavigate('videos'); }}>
+          <Video size={18} /> My Videos
         </a>
       </div>
 
       <div className="nav-section">
-        <div className="nav-label">Settings</div>
+        <div className="nav-label">Account</div>
         <a href="#" className="nav-item">
-          <Settings size={18} />
-          Account
+          <Settings size={18} /> Settings
         </a>
         <a href="#" className="nav-item">
-          <CreditCard size={18} />
-          Billing
+          <CreditCard size={18} /> Billing
         </a>
       </div>
 
       <div className="sidebar-spacer"></div>
 
       <div className="user-profile">
-        <div className="avatar"></div>
+        <div className="avatar">A</div>
         <div className="user-info">
           <span className="user-name">My Workspace</span>
-          <span className="user-credits">10 credits</span>
+          <span className="user-credits"><Zap size={12} style={{display:'inline', verticalAlign:'middle'}} /> Unlimited</span>
         </div>
       </div>
     </aside>
